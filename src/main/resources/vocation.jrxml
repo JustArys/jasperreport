@@ -4,21 +4,21 @@
     <property name="com.jaspersoft.studio.data.sql.tables" value=""/>
     <property name="com.jaspersoft.studio.data.defaultdataadapter" value="Sample DB"/>
 
-    <field name="employeeName">
-    </field>
-    <field name="employeePosition" >
-    </field>
-    <field name="startDate" class="java.sql.Date">
-    </field>
-    <field name="endDate" class="java.sql.Date">
-    </field>
-    <field name="bossName">
-    </field>
-    <field name="bossPosition">
-    </field>
+
+    <style name="Base" isDefault="true" fontSize="8" pdfFontName="arial.ttf" pdfEncoding="Identity-H" isPdfEmbedded="true"/>
+
+
+    <field name="employeeName"/>
+    <field name="employeePosition"/>
+    <field name="startDate" class="java.sql.Date"/>
+    <field name="endDate" class="java.sql.Date"/>
+    <field name="bossName"/>
+    <field name="bossPosition"/>
+
     <background>
         <band splitType="Stretch"/>
     </background>
+
     <title>
         <band height="121" splitType="Stretch">
             <textField>
@@ -35,6 +35,7 @@
             </textField>
         </band>
     </title>
+
     <pageHeader>
         <band height="122" splitType="Stretch">
             <staticText>
@@ -46,6 +47,7 @@
             </staticText>
         </band>
     </pageHeader>
+
     <columnHeader>
         <band height="205" splitType="Stretch">
             <textField>
@@ -53,7 +55,7 @@
                 <textElement>
                     <font size="13"/>
                 </textElement>
-                <textFieldExpression><![CDATA["	Прошу предоставить мне ежегодный оплачиваемый отпуск с " +
+                <textFieldExpression><![CDATA["Прошу предоставить мне ежегодный оплачиваемый отпуск с " +
 new java.text.SimpleDateFormat("dd MMMM yyyy", new java.util.Locale("ru")).format($F{startDate}) +
 " до " +
 new java.text.SimpleDateFormat("dd MMMM yyyy", new java.util.Locale("ru")).format($F{endDate}) +
@@ -62,14 +64,15 @@ new java.text.SimpleDateFormat("dd MMMM yyyy", new java.util.Locale("ru")).forma
 " календарных дней."
 ]]></textFieldExpression>
             </textField>
+
             <textField>
                 <reportElement x="15" y="150" width="121" height="50" uuid="dc3eacc3-7f32-433c-97a8-5a33da872791"/>
                 <textElement>
                     <font size="12"/>
                 </textElement>
-                <textFieldExpression><![CDATA[new java.text.SimpleDateFormat("dd MMMM yyyy", new java.util.Locale("ru")).format(new java.util.Date())
-]]></textFieldExpression>
+                <textFieldExpression><![CDATA[new java.text.SimpleDateFormat("dd MMMM yyyy", new java.util.Locale("ru")).format(new java.util.Date())]]></textFieldExpression>
             </textField>
+
             <textField>
                 <reportElement x="310" y="160" width="235" height="40" uuid="5b2b4736-fa08-4148-a1ec-bf13fedfd0f7"/>
                 <textElement>
@@ -79,15 +82,19 @@ new java.text.SimpleDateFormat("dd MMMM yyyy", new java.util.Locale("ru")).forma
             </textField>
         </band>
     </columnHeader>
+
     <detail>
         <band height="126" splitType="Stretch"/>
     </detail>
+
     <columnFooter>
         <band height="45" splitType="Stretch"/>
     </columnFooter>
+
     <pageFooter>
         <band height="54" splitType="Stretch"/>
     </pageFooter>
+
     <summary>
         <band height="42" splitType="Stretch"/>
     </summary>

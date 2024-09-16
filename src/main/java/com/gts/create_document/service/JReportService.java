@@ -20,7 +20,6 @@ import java.io.InputStream;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
 @Service
 public class JReportService {
 
@@ -32,41 +31,53 @@ public class JReportService {
 
     @Transactional
     public void exportJasperReport(Long leaveId, HttpServletResponse response) throws JRException, IOException {
-        // Fetch data
-        EmployeeLeave leave = employeeLeaveRepository.findById(leaveId)
-                .orElseThrow(() -> new IllegalArgumentException("Invalid leave ID"));
+        try {
+            // Fetch data
+            EmployeeLeave leave = employeeLeaveRepository.findById(leaveId)
+                    .orElseThrow(() -> new IllegalArgumentException("Invalid leave ID"));
 
-        Employee employee = employeeRepository.findById(leave.getEmployeeId())
-                .orElseThrow(() -> new IllegalArgumentException("Invalid employee ID"));
+            Employee employee = employeeRepository.findById(leave.getEmployeeId())
+                    .orElseThrow(() -> new IllegalArgumentException("Invalid employee ID"));
 
-        Employee boss = employeeRepository.findById(leave.getBossId())
-                .orElseThrow(() -> new IllegalArgumentException("Invalid boss ID"));
+            Employee boss = employeeRepository.findById(leave.getBossId())
+                    .orElseThrow(() -> new IllegalArgumentException("Invalid boss ID"));
 
-        Vocation vocation = new Vocation(employee.getName(), employee.getPosition(), leave.getStartDate(), leave.getEndDate(), boss.getName(), boss.getPosition());
-        System.out.println(vocation);
-        // Prepare data for report
-        List<Vocation> vocationData = List.of(vocation);
-        JRBeanCollectionDataSource dataSource = new JRBeanCollectionDataSource(vocationData);
+            Vocation vocation = new Vocation(employee.getName(), employee.getPosition(), leave.getStartDate(), leave.getEndDate(), boss.getName(), boss.getPosition());
+            List<Vocation> vocationData = List.of(vocation);
+            JRBeanCollectionDataSource dataSource = new JRBeanCollectionDataSource(vocationData);
 
-        // Load and compile report
-        InputStream reportStream = new ClassPathResource("vocation.jrxml").getInputStream();
-        JasperReport jasperReport = JasperCompileManager.compileReport(reportStream);
+            // Load and compile report
+            InputStream reportStream = new ClassPathResource("vocation.jrxml").getInputStream();
+            JasperReport jasperReport = JasperCompileManager.compileReport(reportStream);
 
-        // Set parameters
-        Map<String, Object> parameters = new HashMap<>();
-        parameters.put("employeeName", vocation.getEmployeeName());
-        parameters.put("employeePosition", vocation.getEmployeePosition());
-        parameters.put("startDate", vocation.getStartDate());
-        parameters.put("endDate", vocation.getEndDate());
-        parameters.put("bossName", vocation.getBossName());
-        parameters.put("bossPosition", vocation.getBossPosition());
+            // Set parameters
+            Map<String, Object> parameters = new HashMap<>();
+            parameters.put("employeeName", vocation.getEmployeeName());
+            parameters.put("employeePosition", vocation.getEmployeePosition());
+            parameters.put("startDate", vocation.getStartDate());
+            parameters.put("endDate", vocation.getEndDate());
+            parameters.put("bossName", vocation.getBossName());
+            parameters.put("bossPosition", vocation.getBossPosition());
 
-        // Fill report
-        JasperPrint jasperPrint = JasperFillManager.fillReport(jasperReport, parameters, dataSource);
+            // Fill report
+            JasperPrint jasperPrint = JasperFillManager.fillReport(jasperReport, parameters, dataSource);
 
-        // Export to PDF
-        response.setContentType("application/pdf");
-        response.setHeader("Content-Disposition", "attachment; filename=leave_report.pdf");
-        JasperExportManager.exportReportToPdfStream(jasperPrint, response.getOutputStream());
+            // Set response headers and export PDF
+            response.setContentType("application/pdf");
+            response.setHeader("Content-Disposition", "attachment; filename=leave_report.pdf");
+            response.setHeader("Cache-Control", "no-cache");
+
+            // Export to PDF stream
+            JasperExportManager.exportReportToPdfStream(jasperPrint, response.getOutputStream());
+            response.getOutputStream().flush();
+            response.getOutputStream().close();
+
+        } catch (Exception e) {
+            // Обработка ошибок до отправки данных
+            if (!response.isCommitted()) {
+                response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Ошибка генерации отчета: " + e.getMessage());
+            }
+            e.printStackTrace();
+        }
     }
 }
