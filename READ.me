@@ -1,0 +1,97 @@
+Create Document Application
+Описание
+Create Document Application — это Spring-приложение для генерации отчетов с использованием JasperReports. Приложение поддерживает настройку отчетов через JSON-файлы конфигурации и получение данных от клиента.
+
+Структура проекта
+ReportConfig: Компонент для загрузки конфигурации отчетов из внешнего файла JSON.
+JReportService: Сервис, который отвечает за компиляцию и генерацию отчетов в формате PDF.
+ReportController: REST-контроллер, предоставляющий API для генерации отчетов.
+Функциональность
+Генерация отчетов в формате PDF с использованием шаблонов JasperReports.
+Валидация структуры входных данных с учетом конфигурации.
+Поддержка настройки пути к файлам через переменные окружения для удобства использования с Docker.
+Переменные окружения
+CONFIG_PATH: Путь к JSON-файлу конфигурации отчетов (например, /external-reports/config.json).
+REPORT_DIRECTORY: Путь к папке с шаблонами отчетов (например, /external-reports).
+Установка и запуск
+1. Сборка Docker-образа
+Соберите Docker-образ с использованием Dockerfile:
+
+bash
+Copy code
+docker build -t jasper-app-last:latest .
+2. Сохранение и загрузка Docker-образа
+Сохраните образ в файл tar для переноса:
+
+bash
+Copy code
+docker save -o jasper-app-last.tar jasper-app-last:latest
+Загрузите образ на другую машину:
+
+bash
+Copy code
+docker load -i jasper-app-last.tar
+3. Создание директории для конфигурации
+Пользователи должны создать собственную директорию с конфигурационным файлом config.json и отчетами. Путь к этой директории нужно будет указать при запуске контейнера.
+
+4. Запуск контейнера
+Запустите контейнер с пробросом портов и подключением папки с отчетами:
+
+bash
+Copy code
+docker run -d -p 8000:8081 -e CONFIG_PATH=/external-reports/config.json -e REPORT_DIRECTORY=/external-reports -v /path/to/your/config-directory:/external-reports jasper-app-last:latest
+Использование API
+POST /reports/{name}
+Генерация отчета.
+
+Параметры:
+
+name: Имя шаблона отчета.
+Тело запроса: JSON-объект с данными для генерации отчета.
+Пример запроса:
+
+json
+Copy code
+{
+  "employeeName": "John Doe",
+  "employeePosition": "Software Engineer",
+  "title": "Annual Leave Request",
+  "text": "Request for leave from June 1 to June 15.",
+  "bossName": "Jane Smith",
+  "bossPosition": "CTO"
+}
+Ответ: PDF-файл с отчетом.
+
+Конфигурационный файл
+Пользователи должны создать собственный конфигурационный файл config.json, который будет содержать описание ожидаемых структур данных для отчетов.
+
+Пример структуры файла config.json:
+
+json
+Copy code
+{
+  "vocation": {
+    "employeeName": "string",
+    "employeePosition": "string",
+    "title": "string",
+    "text": "string",
+    "bossName": "string",
+    "bossPosition": "string"
+  },
+  "vocation2": {
+    "employeeName": "string",
+    "employeePosition": "string",
+    "title": "string",
+    "text": "string",
+    "bossName": "string",
+    "bossPosition": "string"
+  }
+}
+Требования
+Java 17+
+Docker
+JasperReports библиотека
+Зависимости
+Spring Boot
+JasperReports
+Jackson для работы с JSON

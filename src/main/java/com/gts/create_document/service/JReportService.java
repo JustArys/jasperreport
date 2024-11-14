@@ -1,81 +1,58 @@
 package com.gts.create_document.service;
 
-
-import com.gts.create_document.dto.Vocation;
-import com.gts.create_document.model.Employee;
-import com.gts.create_document.model.EmployeeLeave;
-import com.gts.create_document.repository.EmployeeLeaveRepository;
-import com.gts.create_document.repository.EmployeeRepository;
-import jakarta.transaction.Transactional;
 import net.sf.jasperreports.engine.*;
-import net.sf.jasperreports.engine.data.JRBeanCollectionDataSource;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.core.io.ClassPathResource;
+import net.sf.jasperreports.engine.data.JRMapCollectionDataSource;
 import org.springframework.stereotype.Service;
-import org.springframework.util.ResourceUtils;
-
 import jakarta.servlet.http.HttpServletResponse;
+
+import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+
 @Service
 public class JReportService {
 
-    @Autowired
-    private EmployeeRepository employeeRepository;
+    // Получаем путь к папке отчетов из переменной окружения или используем путь по умолчанию
+    private static final String REPORT_DIRECTORY = System.getenv("REPORT_DIRECTORY") != null ?
+            System.getenv("REPORT_DIRECTORY") : "C:\\Users\\Asus\\Downloads\\jasper-reports-confg";
 
-    @Autowired
-    private EmployeeLeaveRepository employeeLeaveRepository;
-
-    @Transactional
-    public void exportJasperReport(Long leaveId, HttpServletResponse response) throws JRException, IOException {
+    public void exportJasperReport(String name, Map<String, Object> data, HttpServletResponse response) throws JRException, IOException {
         try {
-            // Fetch data
-            EmployeeLeave leave = employeeLeaveRepository.findById(leaveId)
-                    .orElseThrow(() -> new IllegalArgumentException("Invalid leave ID"));
+            // Оборачиваем данные в список, так как JRMapCollectionDataSource ожидает коллекцию
+            List<Map<String, ?>> dataList = Collections.singletonList(data);
+            JRMapCollectionDataSource dataSource = new JRMapCollectionDataSource(dataList);
 
-            Employee employee = employeeRepository.findById(leave.getEmployeeId())
-                    .orElseThrow(() -> new IllegalArgumentException("Invalid employee ID"));
+            // Загружаем файл отчета из внешней директории
+            String reportPath = REPORT_DIRECTORY + File.separator + name + ".jrxml";
+            InputStream reportStream;
+            try {
+                reportStream = new FileInputStream(reportPath);
+            } catch (Exception e) {
+                throw new JRException("Failed to load report from path: " + reportPath + ". Error: " + e.getMessage());
+            }
 
-            Employee boss = employeeRepository.findById(leave.getBossId())
-                    .orElseThrow(() -> new IllegalArgumentException("Invalid boss ID"));
-
-            Vocation vocation = new Vocation(employee.getName(), employee.getPosition(), leave.getStartDate(), leave.getEndDate(), boss.getName(), boss.getPosition());
-            List<Vocation> vocationData = List.of(vocation);
-            JRBeanCollectionDataSource dataSource = new JRBeanCollectionDataSource(vocationData);
-
-            // Load and compile report
-            InputStream reportStream = new ClassPathResource("vocation.jrxml").getInputStream();
+            // Компиляция отчета
             JasperReport jasperReport = JasperCompileManager.compileReport(reportStream);
 
-            // Set parameters
-            Map<String, Object> parameters = new HashMap<>();
-            parameters.put("employeeName", vocation.getEmployeeName());
-            parameters.put("employeePosition", vocation.getEmployeePosition());
-            parameters.put("startDate", vocation.getStartDate());
-            parameters.put("endDate", vocation.getEndDate());
-            parameters.put("bossName", vocation.getBossName());
-            parameters.put("bossPosition", vocation.getBossPosition());
+            // Заполнение отчета параметрами и источником данных
+            JasperPrint jasperPrint = JasperFillManager.fillReport(jasperReport, data, dataSource);
 
-            // Fill report
-            JasperPrint jasperPrint = JasperFillManager.fillReport(jasperReport, parameters, dataSource);
-
-            // Set response headers and export PDF
+            // Установка заголовков ответа и экспорт в PDF
             response.setContentType("application/pdf");
-            response.setHeader("Content-Disposition", "attachment; filename=leave_report.pdf");
+            response.setHeader("Content-Disposition", "attachment; filename=" + name + "_report.pdf");
             response.setHeader("Cache-Control", "no-cache");
 
-            // Export to PDF stream
+            // Экспорт в PDF-поток
             JasperExportManager.exportReportToPdfStream(jasperPrint, response.getOutputStream());
             response.getOutputStream().flush();
             response.getOutputStream().close();
 
         } catch (Exception e) {
-            // Обработка ошибок до отправки данных
+            // Обработка ошибок перед отправкой ответа
             if (!response.isCommitted()) {
-                response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Ошибка генерации отчета: " + e.getMessage());
+                response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Report generation error: " + e.getMessage());
             }
             e.printStackTrace();
         }
